@@ -1,0 +1,11 @@
+---
+# redis role — host: redis-1
+# Goal: install Redis (deb822_repository + apt) and configure it to listen on the
+#       network so poll and worker can reach it on port {{ redis_port }}.
+# systemd managed, enabled on boot, idempotent.
+# See GitHub issue: "redis role".
+
+# TODO: add official Redis apt repo (deb822_repository)
+# TODO: install redis
+# TODO: deploy files/redis.conf (bind to network interface)
+# TODO: enable + start service via systemd, handler to restart on config change
