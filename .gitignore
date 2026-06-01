@@ -1,0 +1,22 @@
+# Python virtualenv (local Ansible install)
+.venv/
+
+# Ansible
+*.retry
+
+# Vault password files — NEVER commit these
+.vault_pass
+*.vault_pass
+vault_pass*
+.vault_password
+
+# SSH private keys
+*.pem
+id_rsa
+id_ed25519
+*.key
+
+# Editor / OS noise
+out.txt
+.DS_Store
+*.swp
