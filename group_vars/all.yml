@@ -1,0 +1,45 @@
+---
+# =============================================================================
+# Global configuration shared by all hosts (12-factor friendly).
+# NON-SECRET values live here in clear text.
+# SECRETS (passwords) MUST be Ansible Vault encrypted strings (see below).
+# =============================================================================
+
+# --- Service hosts -----------------------------------------------------------
+# These resolve to the inventory hostnames of each instance. They are injected
+# into the services as environment variables. Adjust to match the `production`
+# inventory (e.g. private IPs / DNS names of redis-1 and postgresql-1).
+redis_host: "{{ hostvars[groups['redis'][0]].ansible_host | default(groups['redis'][0]) }}"
+postgres_host: "{{ hostvars[groups['postgresql'][0]].ansible_host | default(groups['postgresql'][0]) }}"
+
+# --- Ports -------------------------------------------------------------------
+redis_port: 6379
+postgres_port: 5432
+poll_port: 80
+result_port: 80
+
+# --- PostgreSQL --------------------------------------------------------------
+postgres_db: paul
+postgres_user: paul
+# postgres_password: defined as a Vault-encrypted string below (vault_postgres_password)
+postgres_password: "{{ vault_postgres_password }}"
+
+# --- Redis (bonus: password auth) -------------------------------------------
+# redis_password: "{{ vault_redis_password }}"   # enable for the bonus
+
+# =============================================================================
+# VAULT-ENCRYPTED SECRETS
+# -----------------------------------------------------------------------------
+# vault_postgres_password holds the PostgreSQL `paul` password, Vault-encrypted.
+# Regenerate (replace <PASSWORD> with the real value, never commit it in clear):
+#   ansible-vault encrypt_string '<PASSWORD>' \
+#       --name 'vault_postgres_password' --vault-password-file .vault_pass
+# Decrypt only with the vault password file (ANSIBLE_VAULT_PASSWORD_FILE).
+# =============================================================================
+vault_postgres_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          33613735383365663338666265393263613464343736336363363536316438343537323862636630
+          3331636333663761313531396663663334316264643064340a313732396365646565336535303133
+          39636363303263323865376366313866666365373939333232306639363439653836353234386261
+          6363343061356136340a303038646333626566613665363465633265306137326464356462333032
+          30666533626336363465346331363263353435396164383533613066346661646536
