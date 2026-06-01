@@ -1,12 +1,83 @@
 ---
 # poll role — host: poll-1
-# Goal: deploy the Flask poll service on port {{ poll_port }} (80).
-# Env (12-factor): REDIS_HOST (+ optional OPTION_A..D).
-# systemd managed, enabled on boot, idempotent.
-# See GitHub issue: "poll role (Flask, port 80)".
+# Goal: deploy the Flask poll service on port {{ poll_port }} (80), run by gunicorn
+#       under a dedicated non-root user. Env (12-factor): REDIS_HOST.
+# systemd managed, enabled on boot, idempotent. See GitHub issue #6.
 
-# TODO: install python3 + venv (apt)
-# TODO: upload + extract poll.tar (unarchive)
-# TODO: install deps Flask, Redis (+ gunicorn) via pip module into a venv
-# TODO: deploy files/poll.service (EnvironmentFile with REDIS_HOST)
-# TODO: enable + start service via systemd
+- name: Create the poll system user
+  ansible.builtin.user:
+    name: poll
+    system: true
+    shell: /usr/sbin/nologin
+    home: /opt/poll
+    create_home: false
+
+- name: Ensure the poll application directory exists
+  ansible.builtin.file:
+    path: /opt/poll
+    state: directory
+    owner: poll
+    group: poll
+    mode: "0755"
+
+- name: Install Python tooling for the virtualenv
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-venv
+    state: present
+
+- name: Upload and extract the poll service
+  ansible.builtin.unarchive:
+    src: "{{ playbook_dir }}/poll.tar"
+    dest: /opt
+    owner: poll
+    group: poll
+  notify: Restart poll
+
+- name: Install poll Python dependencies in a virtualenv
+  ansible.builtin.pip:
+    requirements: /opt/poll/requirements.txt
+    virtualenv: /opt/poll/venv
+    virtualenv_command: python3 -m venv
+  notify: Restart poll
+
+- name: Install gunicorn in the virtualenv
+  ansible.builtin.pip:
+    name: gunicorn
+    virtualenv: /opt/poll/venv
+    virtualenv_command: python3 -m venv
+  notify: Restart poll
+
+- name: Ensure the poll environment directory exists
+  ansible.builtin.file:
+    path: /etc/poll
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy the poll environment file
+  ansible.builtin.template:
+    src: poll.env.j2
+    dest: /etc/poll/poll.env
+    owner: root
+    group: poll
+    mode: "0640"
+  notify: Restart poll
+
+- name: Deploy the poll systemd unit
+  ansible.builtin.copy:
+    src: poll.service
+    dest: /etc/systemd/system/poll.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart poll
+
+- name: Ensure poll is enabled and started
+  ansible.builtin.systemd_service:
+    name: poll
+    enabled: true
+    state: started
+    daemon_reload: true

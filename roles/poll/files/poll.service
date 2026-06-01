@@ -1,0 +1,18 @@
+[Unit]
+Description=Poll web client (Flask)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=poll
+Group=poll
+WorkingDirectory=/opt/poll
+EnvironmentFile=/etc/poll/poll.env
+ExecStart=/opt/poll/venv/bin/gunicorn --bind 0.0.0.0:80 --workers 2 wsgi:app
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
