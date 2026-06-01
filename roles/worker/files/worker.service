@@ -1,0 +1,17 @@
+[Unit]
+Description=Poll worker (Java)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=worker
+Group=worker
+WorkingDirectory=/opt/worker
+EnvironmentFile=/etc/worker/worker.env
+ExecStart=/usr/bin/java -jar /opt/worker/target/worker-jar-with-dependencies.jar
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

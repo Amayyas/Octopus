@@ -1,13 +1,80 @@
 ---
 # worker role — host: worker-1
-# Goal: deploy + build the Java worker (Maven) and run it.
-# Env (12-factor): REDIS_HOST, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB,
-#                  POSTGRES_USER, POSTGRES_PASSWORD.
-# systemd managed, enabled on boot, idempotent (do not rebuild if already built).
-# See GitHub issue: "worker role (Java, Maven build)".
+# Goal: deploy + build the Java worker (Maven) and run it under a dedicated
+#       non-root user. Env (12-factor): REDIS_HOST, POSTGRES_HOST, POSTGRES_PORT,
+#       POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
+# systemd managed, enabled on boot, idempotent (no rebuild if already built).
+# See GitHub issue #7.
 
-# TODO: install JDK 21 + maven (apt)
-# TODO: upload + extract worker.tar (unarchive)
-# TODO: build with `mvn package` -> worker-jar-with-dependencies.jar (creates: guard)
-# TODO: deploy files/worker.service (EnvironmentFile)
-# TODO: enable + start service via systemd
+- name: Create the worker system user
+  ansible.builtin.user:
+    name: worker
+    system: true
+    shell: /usr/sbin/nologin
+    home: /opt/worker
+    create_home: false
+
+- name: Ensure the worker application directory exists
+  ansible.builtin.file:
+    path: /opt/worker
+    state: directory
+    owner: worker
+    group: worker
+    mode: "0755"
+
+- name: Install the JDK and Maven
+  ansible.builtin.apt:
+    name:
+      - openjdk-21-jdk-headless
+      - maven
+    state: present
+
+- name: Upload and extract the worker service
+  ansible.builtin.unarchive:
+    src: "{{ playbook_dir }}/worker.tar"
+    dest: /opt
+    owner: worker
+    group: worker
+  notify: Restart worker
+
+- name: Build the worker jar
+  ansible.builtin.command:
+    cmd: mvn -B -q package
+    chdir: /opt/worker
+    creates: /opt/worker/target/worker-jar-with-dependencies.jar
+  environment:
+    JAVA_HOME: "/usr/lib/jvm/java-21-openjdk-{{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}"
+  notify: Restart worker
+
+- name: Ensure the worker environment directory exists
+  ansible.builtin.file:
+    path: /etc/worker
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy the worker environment file
+  ansible.builtin.template:
+    src: worker.env.j2
+    dest: /etc/worker/worker.env
+    owner: root
+    group: worker
+    mode: "0640"
+  notify: Restart worker
+
+- name: Deploy the worker systemd unit
+  ansible.builtin.copy:
+    src: worker.service
+    dest: /etc/systemd/system/worker.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart worker
+
+- name: Ensure worker is enabled and started
+  ansible.builtin.systemd_service:
+    name: worker
+    enabled: true
+    state: started
+    daemon_reload: true
