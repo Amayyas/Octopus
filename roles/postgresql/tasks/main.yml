@@ -1,0 +1,14 @@
+---
+# postgresql role — host: postgresql-1
+# Goal: install PostgreSQL 16 (PGDG repo), create DB user `paul`
+#       (password from vault_postgres_password, limited perms), create DB `paul`,
+#       load files/schema.sql, allow network access (listen_addresses + pg_hba.conf).
+# systemd managed, enabled on boot, idempotent.
+# NOTE: the `paul` user and the `paul` database are TWO different things.
+# See GitHub issue: "postgresql role (PostgreSQL 16)".
+
+# TODO: add PGDG apt repo (deb822_repository) + install postgresql-16
+# TODO: configure listen_addresses + deploy files/pg_hba.conf
+# TODO: community.postgresql.postgresql_user (paul, limited privileges)
+# TODO: community.postgresql.postgresql_db (paul)
+# TODO: load files/schema.sql
