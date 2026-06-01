@@ -1,0 +1,18 @@
+[Unit]
+Description=Result web client (Node.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=result
+Group=result
+WorkingDirectory=/opt/result
+EnvironmentFile=/etc/result/result.env
+ExecStart=/usr/bin/node /opt/result/server.js
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

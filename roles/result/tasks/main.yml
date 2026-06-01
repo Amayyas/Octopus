@@ -1,13 +1,75 @@
 ---
 # result role — host: result-1
-# Goal: deploy the Node.js result web client on port {{ result_port }} (80).
-# Env (12-factor): POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB,
-#                  POSTGRES_USER, POSTGRES_PASSWORD.
-# systemd managed, enabled on boot, idempotent.
-# See GitHub issue: "result role (Node.js, port 80)".
+# Goal: deploy the Node.js result web client on port {{ result_port }} (80) under
+#       a dedicated non-root user. Env (12-factor): POSTGRES_HOST, POSTGRES_PORT,
+#       POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD.
+# systemd managed, enabled on boot, idempotent. See GitHub issue #8.
 
-# TODO: install nodejs + npm (deb822_repository / apt)
-# TODO: upload + extract result.tar (unarchive)
-# TODO: npm install (command — no core npm module)
-# TODO: deploy files/result.service (EnvironmentFile)
-# TODO: enable + start service via systemd
+- name: Create the result system user
+  ansible.builtin.user:
+    name: result
+    system: true
+    shell: /usr/sbin/nologin
+    home: /opt/result
+    create_home: false
+
+- name: Ensure the result application directory exists
+  ansible.builtin.file:
+    path: /opt/result
+    state: directory
+    owner: result
+    group: result
+    mode: "0755"
+
+- name: Install Node.js and npm
+  ansible.builtin.apt:
+    name:
+      - nodejs
+      - npm
+    state: present
+
+- name: Upload and extract the result service
+  ansible.builtin.unarchive:
+    src: "{{ playbook_dir }}/result.tar"
+    dest: /opt
+    owner: result
+    group: result
+  notify: Restart result
+
+- name: Install result Node.js dependencies
+  community.general.npm:
+    path: /opt/result
+  notify: Restart result
+
+- name: Ensure the result environment directory exists
+  ansible.builtin.file:
+    path: /etc/result
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy the result environment file
+  ansible.builtin.template:
+    src: result.env.j2
+    dest: /etc/result/result.env
+    owner: root
+    group: result
+    mode: "0640"
+  notify: Restart result
+
+- name: Deploy the result systemd unit
+  ansible.builtin.copy:
+    src: result.service
+    dest: /etc/systemd/system/result.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart result
+
+- name: Ensure result is enabled and started
+  ansible.builtin.systemd_service:
+    name: result
+    enabled: true
+    state: started
+    daemon_reload: true
