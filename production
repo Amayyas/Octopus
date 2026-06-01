@@ -1,0 +1,25 @@
+# =============================================================================
+# Dev inventory — the grader will use THEIR OWN `production` file.
+# Fill ansible_host with your VMs IPs/DNS. Connect as a normal user with sudo.
+# Each group has exactly ONE instance.
+# =============================================================================
+
+[redis]
+redis-1        ansible_host=CHANGE_ME
+
+[postgresql]
+postgresql-1   ansible_host=CHANGE_ME
+
+[poll]
+poll-1         ansible_host=CHANGE_ME
+
+[result]
+result-1       ansible_host=CHANGE_ME
+
+[worker]
+worker-1       ansible_host=CHANGE_ME
+
+[all:vars]
+ansible_user=debian
+ansible_ssh_private_key_file=~/.ssh/id_ed25519
+ansible_python_interpreter=/usr/bin/python3
