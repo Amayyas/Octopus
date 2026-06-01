@@ -1,0 +1,13 @@
+---
+# worker role — host: worker-1
+# Goal: deploy + build the Java worker (Maven) and run it.
+# Env (12-factor): REDIS_HOST, POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB,
+#                  POSTGRES_USER, POSTGRES_PASSWORD.
+# systemd managed, enabled on boot, idempotent (do not rebuild if already built).
+# See GitHub issue: "worker role (Java, Maven build)".
+
+# TODO: install JDK 21 + maven (apt)
+# TODO: upload + extract worker.tar (unarchive)
+# TODO: build with `mvn package` -> worker-jar-with-dependencies.jar (creates: guard)
+# TODO: deploy files/worker.service (EnvironmentFile)
+# TODO: enable + start service via systemd
