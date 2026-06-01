@@ -1,0 +1,44 @@
+---
+# =============================================================================
+# Octopus — poll application deployment with Ansible
+# Tested by the grader with:
+#   export ANSIBLE_VAULT_PASSWORD_FILE=/tmp/.vault_pass
+#   echo verySecretPassword > /tmp/.vault_pass
+#   ansible-playbook -i production playbook.yml
+# =============================================================================
+
+- name: Base configuration for all machines
+  hosts: all
+  become: true
+  roles:
+    - base
+
+- name: Redis server
+  hosts: redis
+  become: true
+  roles:
+    - redis
+
+- name: PostgreSQL server
+  hosts: postgresql
+  become: true
+  roles:
+    - postgresql
+
+- name: Poll web client (Flask)
+  hosts: poll
+  become: true
+  roles:
+    - poll
+
+- name: Worker (Java)
+  hosts: worker
+  become: true
+  roles:
+    - worker
+
+- name: Result web client (Node.js)
+  hosts: result
+  become: true
+  roles:
+    - result
