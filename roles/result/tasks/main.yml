@@ -1,0 +1,13 @@
+---
+# result role — host: result-1
+# Goal: deploy the Node.js result web client on port {{ result_port }} (80).
+# Env (12-factor): POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB,
+#                  POSTGRES_USER, POSTGRES_PASSWORD.
+# systemd managed, enabled on boot, idempotent.
+# See GitHub issue: "result role (Node.js, port 80)".
+
+# TODO: install nodejs + npm (deb822_repository / apt)
+# TODO: upload + extract result.tar (unarchive)
+# TODO: npm install (command — no core npm module)
+# TODO: deploy files/result.service (EnvironmentFile)
+# TODO: enable + start service via systemd
