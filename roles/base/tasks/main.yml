@@ -1,9 +1,27 @@
 ---
 # base role — applied to ALL machines.
-# Goal: install useful everyday packages (apt) + sane instance configuration.
-# Constraints: use the `apt` module (no command/shell), no useless/heavy packages,
-#              must be idempotent.
-# See GitHub issue: "base role (all machines)".
+# Goal: install useful everyday packages + a sane, properly configured instance.
+# Constraints: apt module only (no command/shell), no useless/heavy packages,
+#              idempotent. See GitHub issue #3.
 
-# TODO: install useful packages (e.g. vim, curl, git, htop, ca-certificates ...)
-# TODO: configure instance (locale, timezone, apt cache update ...)
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install useful base packages
+  ansible.builtin.apt:
+    name:
+      - vim            # everyday editor
+      - curl           # HTTP client, used everywhere
+      - wget           # downloads
+      - git            # version control
+      - htop           # process/resource monitoring
+      - ca-certificates  # TLS trust store (needed for HTTPS apt repos)
+      - gnupg          # verify apt repository signing keys (deb822_repository)
+      - acl            # required by Ansible `become` to an unprivileged user
+    state: present
+
+- name: Set the system timezone
+  community.general.timezone:
+    name: "{{ system_timezone }}"

@@ -12,6 +12,9 @@
 redis_host: "{{ hostvars[groups['redis'][0]].ansible_host | default(groups['redis'][0]) }}"
 postgres_host: "{{ hostvars[groups['postgresql'][0]].ansible_host | default(groups['postgresql'][0]) }}"
 
+# --- Base instance config ----------------------------------------------------
+system_timezone: Europe/Paris
+
 # --- Ports -------------------------------------------------------------------
 redis_port: 6379
 postgres_port: 5432
