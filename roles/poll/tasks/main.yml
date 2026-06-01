@@ -1,0 +1,12 @@
+---
+# poll role — host: poll-1
+# Goal: deploy the Flask poll service on port {{ poll_port }} (80).
+# Env (12-factor): REDIS_HOST (+ optional OPTION_A..D).
+# systemd managed, enabled on boot, idempotent.
+# See GitHub issue: "poll role (Flask, port 80)".
+
+# TODO: install python3 + venv (apt)
+# TODO: upload + extract poll.tar (unarchive)
+# TODO: install deps Flask, Redis (+ gunicorn) via pip module into a venv
+# TODO: deploy files/poll.service (EnvironmentFile with REDIS_HOST)
+# TODO: enable + start service via systemd
