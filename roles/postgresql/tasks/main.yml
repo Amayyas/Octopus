@@ -1,14 +1,89 @@
 ---
 # postgresql role — host: postgresql-1
-# Goal: install PostgreSQL 16 (PGDG repo), create DB user `paul`
-#       (password from vault_postgres_password, limited perms), create DB `paul`,
-#       load files/schema.sql, allow network access (listen_addresses + pg_hba.conf).
-# systemd managed, enabled on boot, idempotent.
+# Goal: install PostgreSQL 16 (PGDG), create DB user `paul` (limited perms) and
+#       database `paul`, load files/schema.sql, allow network access.
 # NOTE: the `paul` user and the `paul` database are TWO different things.
-# See GitHub issue: "postgresql role (PostgreSQL 16)".
+# systemd managed, enabled on boot, idempotent. See GitHub issue #5.
 
-# TODO: add PGDG apt repo (deb822_repository) + install postgresql-16
-# TODO: configure listen_addresses + deploy files/pg_hba.conf
-# TODO: community.postgresql.postgresql_user (paul, limited privileges)
-# TODO: community.postgresql.postgresql_db (paul)
-# TODO: load files/schema.sql
+- name: Add the PostgreSQL (PGDG) apt repository
+  ansible.builtin.deb822_repository:
+    name: pgdg
+    types: [deb]
+    uris: https://apt.postgresql.org/pub/repos/apt
+    suites: "{{ ansible_distribution_release }}-pgdg"
+    components: [main]
+    signed_by: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    state: present
+    enabled: true
+
+- name: Install PostgreSQL 16 and the Python driver for Ansible
+  ansible.builtin.apt:
+    name:
+      - "postgresql-{{ postgres_version }}"
+      - python3-psycopg2   # required by the community.postgresql modules
+    state: present
+    update_cache: true
+
+- name: Ensure PostgreSQL is enabled and started
+  ansible.builtin.systemd_service:
+    name: postgresql
+    enabled: true
+    state: started
+
+- name: Configure PostgreSQL to listen on all interfaces
+  community.postgresql.postgresql_alter_system:
+    param: listen_addresses
+    value: "*"
+  become: true
+  become_user: postgres
+  notify: Restart postgresql
+
+- name: Deploy client authentication rules (pg_hba.conf)
+  ansible.builtin.copy:
+    src: pg_hba.conf
+    dest: "/etc/postgresql/{{ postgres_version }}/main/pg_hba.conf"
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  notify: Restart postgresql
+
+- name: Create the paul database user with limited permissions
+  community.postgresql.postgresql_user:
+    name: "{{ postgres_user }}"
+    password: "{{ postgres_password }}"
+    role_attr_flags: NOSUPERUSER,NOCREATEDB,NOCREATEROLE
+  become: true
+  become_user: postgres
+
+- name: Create the paul database
+  community.postgresql.postgresql_db:
+    name: "{{ postgres_db }}"
+  become: true
+  become_user: postgres
+
+- name: Check whether the votes table already exists
+  community.postgresql.postgresql_query:
+    login_db: "{{ postgres_db }}"
+    query: "SELECT to_regclass('public.votes') AS tbl"
+  become: true
+  become_user: postgres
+  register: postgresql_votes_table
+  changed_when: false
+
+- name: Load the votes schema
+  community.postgresql.postgresql_query:
+    login_db: "{{ postgres_db }}"
+    query: "{{ lookup('ansible.builtin.file', role_path ~ '/files/schema.sql') }}"
+  become: true
+  become_user: postgres
+  when: postgresql_votes_table.query_result[0].tbl | default(none) is none
+
+- name: Grant paul CRUD privileges on the votes table
+  community.postgresql.postgresql_privs:
+    login_db: "{{ postgres_db }}"
+    role: "{{ postgres_user }}"
+    type: table
+    objs: votes
+    privs: SELECT,INSERT,UPDATE
+  become: true
+  become_user: postgres

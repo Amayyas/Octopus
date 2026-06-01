@@ -22,6 +22,7 @@ poll_port: 80
 result_port: 80
 
 # --- PostgreSQL --------------------------------------------------------------
+postgres_version: 16
 postgres_db: paul
 postgres_user: paul
 # postgres_password: defined as a Vault-encrypted string below (vault_postgres_password)
